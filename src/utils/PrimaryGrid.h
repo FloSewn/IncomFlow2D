@@ -1,5 +1,5 @@
 /*
-* This header file is part of the IncomFlow2D library.  
+* This file is part of the IncomFlow2D library.  
 * This code was written by Florian Setzwein in 2022, 
 * and is covered under the MIT License
 * Refer to the accompanying documentation for details

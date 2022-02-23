@@ -18,6 +18,7 @@ int main()
   fprintf(stderr, "\n");
 
   run_tests_MeshReader();
+  run_tests_DualGrid();
 
   fprintf(stderr, "\n\nEverything works like a charm.\n\n");
 

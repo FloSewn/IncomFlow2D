@@ -5,6 +5,7 @@
 * 
 *********************************************************************/
 void run_tests_MeshReader();
+void run_tests_DualGrid();
 
 
 #endif /* RUN_TESTS_H*/

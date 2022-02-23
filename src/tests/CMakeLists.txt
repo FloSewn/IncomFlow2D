@@ -2,6 +2,7 @@ set( TESTS run_tests )
 
 add_executable( ${TESTS}
   tests_MeshReader.c
+  tests_DualGrid.c
   main.c
 )
 

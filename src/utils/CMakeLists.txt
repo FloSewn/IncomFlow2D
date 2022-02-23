@@ -9,7 +9,9 @@ set( UTILS_MAIN
   bstrlib.c
   bstrlib_wrapper.c
   MeshReader.c
+  Boundary.c
   PrimaryGrid.c
+  DualGrid.c
   )
 
 # Define library

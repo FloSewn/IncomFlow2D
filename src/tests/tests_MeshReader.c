@@ -7,8 +7,9 @@
 #include "icf_utils.h"
 #include "MeshReader.h"
 #include "PrimaryGrid.h"
+#include "DualGrid.h"
 
-const char *test_grid = "/datadisk/Code/C-Code/SimpleSolver/input/grid/PrimaryGrid.dat";
+static const char *test_grid = "/datadisk/Code/C-Code/SimpleSolver/input/grid/PrimaryGrid.dat";
 
 /*********************************************************************
 * Test creation / destruction of MeshReader structure 
@@ -30,69 +31,69 @@ int test_MeshReader_read_primgrid()
 {
   MeshReader *mesh_reader = MeshReader_create( test_grid );
 
-  PrimaryGrid *prim_grid = PrimaryGrid_create();
+  PrimaryGrid *primgrid = PrimaryGrid_create();
 
-  MeshReader_read_primgrid( mesh_reader, prim_grid );
+  MeshReader_read_primgrid( mesh_reader, primgrid );
 
-  check( prim_grid->n_vertices == 1311,
+  check( primgrid->n_vertices == 1311,
     "> MeshReader_read_primgrid() failed");
-  check( prim_grid->n_tris == 1650, 
+  check( primgrid->n_tris == 1650, 
     "> MeshReader_read_primgrid() failed");
-  check( prim_grid->n_quads == 372, 
+  check( primgrid->n_quads == 372, 
     "> MeshReader_read_primgrid() failed");
-  check( prim_grid->n_intr_edges == 3105, 
+  check( primgrid->n_intr_edges == 3105, 
     "> MeshReader_read_primgrid() failed");
-  check( prim_grid->n_bdry_edges == 228, 
-    "> MeshReader_read_primgrid() failed");
-
-  check( prim_grid->tris[0][0] == 549, 
-    "> MeshReader_read_primgrid() failed");
-  check( prim_grid->tris[1][1] == 221, 
-    "> MeshReader_read_primgrid() failed");
-  check( prim_grid->tris[2][2] == 564, 
+  check( primgrid->n_bdry_edges == 228, 
     "> MeshReader_read_primgrid() failed");
 
-  check( prim_grid->quads[0][0] == 21, 
+  check( primgrid->tris[0][0] == 549, 
     "> MeshReader_read_primgrid() failed");
-  check( prim_grid->quads[1][1] == 23, 
+  check( primgrid->tris[1][1] == 221, 
     "> MeshReader_read_primgrid() failed");
-  check( prim_grid->quads[2][2] == 230, 
-    "> MeshReader_read_primgrid() failed");
-  check( prim_grid->quads[3][3] == 230, 
+  check( primgrid->tris[2][2] == 564, 
     "> MeshReader_read_primgrid() failed");
 
-  check( prim_grid->tri_neighbors[0][0] == 325, 
+  check( primgrid->quads[0][0] == 21, 
     "> MeshReader_read_primgrid() failed");
-  check( prim_grid->tri_neighbors[4][1] == 159, 
+  check( primgrid->quads[1][1] == 23, 
     "> MeshReader_read_primgrid() failed");
-  check( prim_grid->tri_neighbors[5][2] == -1, 
+  check( primgrid->quads[2][2] == 230, 
     "> MeshReader_read_primgrid() failed");
-
-  check( prim_grid->quad_neighbors[0][0] == 1, 
-    "> MeshReader_read_primgrid() failed");
-  check( prim_grid->quad_neighbors[1][1] == 81, 
-    "> MeshReader_read_primgrid() failed");
-  check( prim_grid->quad_neighbors[2][2] == 1, 
-    "> MeshReader_read_primgrid() failed");
-  check( prim_grid->quad_neighbors[3][3] == -1, 
+  check( primgrid->quads[3][3] == 230, 
     "> MeshReader_read_primgrid() failed");
 
-  check( prim_grid->intr_edges[0][0] == 228, 
+  check( primgrid->tri_neighbors[0][0] == 325, 
     "> MeshReader_read_primgrid() failed");
-  check( prim_grid->intr_edges[1][1] == 23, 
+  check( primgrid->tri_neighbors[4][1] == 159, 
     "> MeshReader_read_primgrid() failed");
-
-
-  check( prim_grid->bdry_edges[0][0] == 19, 
-    "> MeshReader_read_primgrid() failed");
-  check( prim_grid->bdry_edges[1][1] == 21, 
+  check( primgrid->tri_neighbors[5][2] == -1, 
     "> MeshReader_read_primgrid() failed");
 
-  check( prim_grid->bdry_edge_marker[2] == 2, 
+  check( primgrid->quad_neighbors[0][0] == 1, 
+    "> MeshReader_read_primgrid() failed");
+  check( primgrid->quad_neighbors[1][1] == 81, 
+    "> MeshReader_read_primgrid() failed");
+  check( primgrid->quad_neighbors[2][2] == 1, 
+    "> MeshReader_read_primgrid() failed");
+  check( primgrid->quad_neighbors[3][3] == -1, 
+    "> MeshReader_read_primgrid() failed");
+
+  check( primgrid->intr_edges[0][0] == 228, 
+    "> MeshReader_read_primgrid() failed");
+  check( primgrid->intr_edges[1][1] == 23, 
     "> MeshReader_read_primgrid() failed");
 
 
-  PrimaryGrid_destroy( prim_grid );
+  check( primgrid->bdry_edges[0][0] == 19, 
+    "> MeshReader_read_primgrid() failed");
+  check( primgrid->bdry_edges[1][1] == 21, 
+    "> MeshReader_read_primgrid() failed");
+
+  check( primgrid->bdry_edge_marker[2] == 2, 
+    "> MeshReader_read_primgrid() failed");
+
+
+  PrimaryGrid_destroy( primgrid );
 
   MeshReader_destroy( mesh_reader );
 
@@ -102,6 +103,7 @@ error:
   return ICF_ERROR;
 
 } /* test_MeshReader_read_primgrid() */
+
 
 
 /*********************************************************************
@@ -115,11 +117,11 @@ int run_tests_MeshReader()
   check( test_MeshReader_read_primgrid(), 
       "> test_MeshReader_read_primgrid() failed" ); 
 
-  fprintf(stderr, "> test_MeshReader() succeeded");
+  fprintf(stderr, "> test_MeshReader() succeeded\n");
   return ICF_SUCCESS;
 
 error:
-  fprintf(stderr, "> test_MeshReader() failed");
+  fprintf(stderr, "> test_MeshReader() failed\n");
   return ICF_ERROR;
 
 } /* run_tests_MeshReader() */
