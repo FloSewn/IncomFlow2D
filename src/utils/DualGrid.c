@@ -24,8 +24,8 @@ static inline void calc_tri_centroid(const double coords[3][2],
 /***********************************************************************
 * Function to compute the edge centroids of a primary grid triangle 
 ***********************************************************************/
-static inline void calc_tri_edge_centroid(const double coords[3][2],
-                                          double       centroids[3][2]);
+static inline void calc_tri_edge_centroids(const double coords[3][2],
+                                           double       centroids[3][2]);
 
 /***********************************************************************
 * Function to compute the center of a primary grid quad 
@@ -36,8 +36,8 @@ static inline void calc_quad_centroid(const double coords[4][2],
 /***********************************************************************
 * Function to compute the edge centroids of a primary grid quad 
 ***********************************************************************/
-static inline void calc_quad_edge_centroid(const double coords[4][2],
-                                           double       centroids[4][2]);
+static inline void calc_quad_edge_centroids(const double coords[4][2],
+                                            double       centroids[4][2]);
 
 /***********************************************************************
 * 
@@ -52,8 +52,8 @@ static inline void calc_tri_centroid(const double coords[3][2],
 /***********************************************************************
 * 
 ***********************************************************************/
-static inline void calc_tri_edge_centroid(const double coords[3][2],
-                                          double       centroids[3][2])
+static inline void calc_tri_edge_centroids(const double coords[3][2],
+                                           double       centroids[3][2])
 {
   centroids[0][0] = 0.5 * ( coords[0][0] + coords[1][0] );
   centroids[0][1] = 0.5 * ( coords[0][1] + coords[1][1] );
@@ -80,8 +80,8 @@ static inline void calc_quad_centroid(const double coords[4][2],
 /***********************************************************************
 * 
 ***********************************************************************/
-static inline void calc_quad_edge_centroid(const double coords[4][2],
-                                           double       centroids[4][2])
+static inline void calc_quad_edge_centroids(const double coords[4][2],
+                                            double       centroids[4][2])
 {
   centroids[0][0] = 0.5 * ( coords[0][0] + coords[1][0] );
   centroids[0][1] = 0.5 * ( coords[0][1] + coords[1][1] );
@@ -196,7 +196,7 @@ DualGrid *DualGrid_build(DualGrid    *dualgrid,
   int    (*face_nbrs)[2]  = dualgrid->face_nbrs;
   double (*face_norms)[2] = dualgrid->face_norms;
 
-  int i_tri, i_quad, i_elem, i_face;
+  int i_tri, i_quad, i_elem, i_face, k;
 
 
   /* Initialize arrays */
@@ -228,7 +228,8 @@ DualGrid *DualGrid_build(DualGrid    *dualgrid,
   for ( i_elem = 0; i_elem < n_elems; i_elem++ )
     n_max_faces = MAX( n_max_faces, n_elem_faces[i_elem] );
 
-  /* Create connectivity list between elements and adjacents faces */
+  /* Create connectivity list between dual elements and their 
+   * adjacent dual faces */
   int **elem_to_face = malloc( n_elems * sizeof(int*) );
 
   for ( i_elem = 0; i_elem < n_elems; i_elem++ )
@@ -258,7 +259,8 @@ DualGrid *DualGrid_build(DualGrid    *dualgrid,
 
 
 
-  /* Loop over all triangular elements */
+  /* Loop over all triangular primary elements and construct 
+   * corresponding median dual metrics */
   for ( i_tri = 0; i_tri < n_tris; i_tri++ )
   {
     int *tri = tris[i_tri];
@@ -273,42 +275,148 @@ DualGrid *DualGrid_build(DualGrid    *dualgrid,
     double edge_centroids[3][2] = { 0.0 };
 
     calc_tri_centroid(tri_coords, tri_centroid);
-    calc_tri_edge_centroid(tri_coords, edge_centroids);
+    calc_tri_edge_centroids(tri_coords, edge_centroids);
 
     /* Loop over all triangle edges and compute forward sub-triangles */
     for ( i_edge = 0; i_edge < 3; i_edge++ )
     {
-      const double a[2] = {
-        edge_centroids[i_edge][0] - tri_coords[i_edge][0],
-        edge_centroids[i_edge][1] - tri_coords[i_edge][1],
+      /* Local vertex indices -> range from 0 to 2 */ 
+      const int p0_loc = i_edge;
+      const int p1_loc = MOD(i_edge+1,3);
+      
+      /* Global vertex indices */
+      int p0 = tri[p0_loc];
+      int p1 = tri[p1_loc];
+
+      const double a0[2] = {
+        edge_centroids[i_edge][0] - tri_coords[p0_loc][0],
+        edge_centroids[i_edge][1] - tri_coords[p0_loc][1],
       };
 
-      const double b[2] = {
-        tri_centroid[0] - tri_coords[i_edge][0],
-        tri_centroid[1] - tri_coords[i_edge][1],
+      const double b0[2] = {
+        tri_centroid[0] - tri_coords[p0_loc][0],
+        tri_centroid[1] - tri_coords[p0_loc][1],
+      };
+
+
+      const double a1[2] = {
+        edge_centroids[i_edge][0] - tri_coords[p1_loc][0],
+        edge_centroids[i_edge][1] - tri_coords[p1_loc][1],
+      };
+
+      const double b1[2] = {
+        tri_centroid[0] - tri_coords[p1_loc][0],
+        tri_centroid[1] - tri_coords[p1_loc][1],
       };
 
       /* Sub-triangle area */
-      const double area = 0.5 * ( a[0] * b[1] - a[1] * b[0] ) ;
+      const double area0 = 0.5 * ( a0[0] * b0[1] - a0[1] * b0[0] ) ;
+      const double area1 = 0.5 * ( a1[0] * b1[1] - a1[1] * b1[0] ) ;
 
-      vol[tri[i_edge]] += area;
+      vol[p0] += area0;
+      vol[p1] -= area1;
 
-      /* Sub-triangle interface normal contribution */
+
+      /* Normal contribution of sub-triangle interface */
       const double norm[2] = {
         -edge_centroids[i_edge][1] + tri_centroid[1],
          edge_centroids[i_edge][0] - tri_centroid[0],
       };
 
+      if ( p1 < p0 )
+        continue;
+
       /* Obtain face index for current interface */
-      int p0 = tri[i_edge];
-      int p1 = tri[MOD(i_edge+1,3)];
+      int *faces_p0 = elem_to_face[p0];
+
+      /* Find global index of current face */
+      for ( k = 0; k < faces_p0[0]; k++ )
+      {
+        i_face = faces_p0[k+1];
+
+        if (face_nbrs[i_face][0] == p1 || face_nbrs[i_face][1] == p1)
+          break;
+      }
+
+      face_norms[i_face][0] += norm[0];
+      face_norms[i_face][1] += norm[1];
+
+    } /* for ( i_edge = ... ) */
+
+  } /* for( i_tri = ... ) */
+
+
+
+  /* Loop over all quadrilateral primary elements and construct 
+   * corresponding median dual metrics */
+  for ( i_quad = 0; i_quad < n_quads; i_quad++ )
+  {
+    int *quad = quads[i_quad];
+
+    double quad_coords[4][2] = {
+      { v_coords[quad[0]][0], v_coords[quad[0]][1] },
+      { v_coords[quad[1]][0], v_coords[quad[1]][1] },
+      { v_coords[quad[2]][0], v_coords[quad[2]][1] },
+      { v_coords[quad[3]][0], v_coords[quad[3]][1] },
+    };
+
+    double quad_centroid[2]     = { 0.0 };
+    double edge_centroids[4][2] = { 0.0 };
+
+    calc_quad_centroid(quad_coords, quad_centroid);
+    calc_quad_edge_centroids(quad_coords, edge_centroids);
+
+    /* Loop over all quad edges and compute forward sub-triangles */
+    for ( i_edge = 0; i_edge < 4; i_edge++ )
+    {
+      /* Local vertex indices -> range from 0 to 2 */ 
+      const int p0_loc = i_edge;
+      const int p1_loc = MOD(i_edge+1,4);
+
+      /* Global vertex indices */
+      int p0 = quad[p0_loc];
+      int p1 = quad[p1_loc];
+
+      const double a0[2] = {
+        edge_centroids[i_edge][0] - quad_coords[p0_loc][0],
+        edge_centroids[i_edge][1] - quad_coords[p0_loc][1],
+      };
+
+      const double b0[2] = {
+        quad_centroid[0] - quad_coords[p0_loc][0],
+        quad_centroid[1] - quad_coords[p0_loc][1],
+      };
+
+
+      const double a1[2] = {
+        edge_centroids[i_edge][0] - quad_coords[p1_loc][0],
+        edge_centroids[i_edge][1] - quad_coords[p1_loc][1],
+      };
+
+      const double b1[2] = {
+        quad_centroid[0] - quad_coords[p1_loc][0],
+        quad_centroid[1] - quad_coords[p1_loc][1],
+      };
+
+      /* Sub-triangle area */
+      const double area0 = 0.5 * ( a0[0] * b0[1] - a0[1] * b0[0] ) ;
+      const double area1 = 0.5 * ( a1[0] * b1[1] - a1[1] * b1[0] ) ;
+
+      vol[p0] += area0;
+      vol[p1] -= area1;
+
+
+      /* Normal contribution of sub-triangle interface */
+      const double norm[2] = {
+        -edge_centroids[i_edge][1] + quad_centroid[1],
+         edge_centroids[i_edge][0] - quad_centroid[0],
+      };
 
       if ( p1 < p0 )
         continue;
 
+      /* Find global index of current face */
       int *faces_p0 = elem_to_face[p0];
-
-      int k;
 
       for ( k = 0; k < faces_p0[0]; k++ )
       {
@@ -320,11 +428,10 @@ DualGrid *DualGrid_build(DualGrid    *dualgrid,
 
       face_norms[i_face][0] += norm[0];
       face_norms[i_face][1] += norm[1];
-    }
 
+    } /* for ( i_edge = ... ) */
 
-  }
-
+  } /* for( i_quad = ... ) */
 
   /*--------------------------------------------------------------------
   | Free temporary memory

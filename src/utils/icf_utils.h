@@ -14,6 +14,7 @@
 #define ICF_SUCCESS  (1);
 #define ICF_ERROR    (0);
 
+#define ICF_SMALL (1.0E-14)
 
 /*********************************************************************
 * Helper functions
@@ -43,7 +44,7 @@
 #endif
 
 #ifndef EQ
-#define EQ(a, b) ( ABS((a)- (b)) < SMALL ? 1 : 0 )
+#define EQ(a, b) ( ABS((a)- (b)) < ICF_SMALL ? 1 : 0 )
 #endif
 
 #ifndef MOD
