@@ -38,8 +38,8 @@ typedef void BdryFun_set_dirichlet(SimData  *sim_data,
 typedef void BdryFun_set_neumann(SimData  *sim_data,
                                  Boundary *boundary);
 
-typedef void BdryFun_set_intr_mflux(SimData  *sim_data,
-                                    Boundary *boundary);
+//typedef void BdryFun_set_intr_mflux(SimData  *sim_data,
+//                                    Boundary *boundary);
 
 typedef void BdryFun_set_bdry_mflux(SimData  *sim_data,
                                     Boundary *boundary);
@@ -79,29 +79,31 @@ typedef struct BoundaryList
 /***********************************************************************
 * Boundary structure
 *
-*               bdry_norm[v2] -> here is bdry_mflux[v2] stored
+*               bdry_norm[1] -> here is bdry_mflux[1] stored
 *
 *                  ^       ^
 *             e1   :       :    e2          
 *     x-------o--------x--------o--------x
 *  v1 |\      :         v2                v3
-*     |  \    :-->
-*     |    \  :  intr_norm[e1]
-*     |______\:  -> these are also the edges, where intr_mflux[e1] 
-*     |             is stored
+*     |  \    :   
+*     |    \  :               
+*     |______\:                                                    
+*     |                      
 *
 *  bdry_points = [v1, v2, v3, ...]
 *  bdry_edges  = [(v1,v2), (v2,v3), ...]
 *
 ***********************************************************************/
-typedef struct Boundary {
-
+typedef struct Boundary 
+{
   BoundaryList *boundaries;
   Boundary     *next;
   Boundary     *prev;
 
+  BoundaryType  type;
+
   /* Name of this boundary */
-  char name;
+  char *name;
 
   int n_bdry_points;
   int n_bdry_edges;
@@ -117,27 +119,29 @@ typedef struct Boundary {
   | and which are needed for the actual boundary fluxes
   --------------------------------------------------------------------*/
   double (*bdry_norm)[2];
-  double *bdry_mflux;
-
-  /*--------------------------------------------------------------------
-  | These are quantities, that are stored at the boundary edges,
-  | and which are needed for the interior fluxes of boundary elements
-  --------------------------------------------------------------------*/
-  double (*intr_norm)[2];
-  double *intr_mflux;
+  double  *bdry_mflux;
 
   /*--------------------------------------------------------------------
   | Boundary functions
   --------------------------------------------------------------------*/
   BdryFun_set_dirichlet       *set_dirichlet;
   BdryFun_set_neumann         *set_neumann;
-  BdryFun_set_intr_mflux      *set_intr_mflux;
+  //BdryFun_set_intr_mflux      *set_intr_mflux;
   BdryFun_set_bdry_mflux      *set_bdry_mflux;
 
 
 } Boundary;
 
 
+/***********************************************************************
+* Function to create and initialize a new Boundary structure
+***********************************************************************/
+Boundary *Boundary_create();
+
+/***********************************************************************
+* Function to destroy a Boundary structure
+***********************************************************************/
+void Boundary_destroy(Boundary *boundary);
 
 /***********************************************************************
 * Function to create and initialize a new BoundaryDef structure
@@ -169,6 +173,7 @@ void BoundaryList_destroy(BoundaryList* boundaries);
 * Function to build the BoundaryList structure from a PrimaryGrid
 ***********************************************************************/
 void BoundaryList_build(BoundaryList *boundaries, 
+                        BoundaryDef*  bdry_def,
                         PrimaryGrid  *primgrid);
 
 

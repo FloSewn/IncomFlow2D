@@ -35,7 +35,6 @@ int test_DualGrid_build_boundaries()
   DualGrid    *dualgrid    = DualGrid_create();
 
   MeshReader_read_primgrid( mesh_reader, primgrid );
-  DualGrid_build(dualgrid, primgrid);
 
   /*------------------------------------------------------------------
   | Manually set boundary definition 
@@ -54,6 +53,11 @@ int test_DualGrid_build_boundaries()
   bdry_def->bdry_types[1] = WALL;
   bdry_def->bdry_types[2] = OUTLET;
   bdry_def->bdry_types[3] = WALL;
+  
+  /*------------------------------------------------------------------
+  | Build the dualgrid 
+  ------------------------------------------------------------------*/
+  DualGrid_build(dualgrid, bdry_def, primgrid);
 
 
   DualGrid_destroy( dualgrid );

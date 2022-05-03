@@ -14,4 +14,42 @@
 #define ICF_SUCCESS  (1);
 #define ICF_ERROR    (0);
 
+
+/*********************************************************************
+* Helper functions
+*********************************************************************/
+#ifndef SQR
+#define SQR(x) ( (x) * (x) ) 
+#endif
+
+#ifndef MAX
+#define MAX(a, b) ( (a) > (b) ? (a) : (b) ) 
+#endif
+
+#ifndef MIN
+#define MIN(a, b) ( (a) < (b) ? (a) : (b) ) 
+#endif
+
+#ifndef MAX0
+#define MAX0(a) ( (a) > 0 ? (a) : 0 ) 
+#endif
+
+#ifndef MIN0
+#define MIN0(a) ( (a) < 0 ? (a) : 0 ) 
+#endif
+
+#ifndef ABS
+#define ABS(a) ( (a) < 0 ? -1 * (a) : (a) ) 
+#endif
+
+#ifndef EQ
+#define EQ(a, b) ( ABS((a)- (b)) < SMALL ? 1 : 0 )
+#endif
+
+#ifndef MOD
+#define MOD(n, M) ( ( ( (n) % (M) ) + (M) ) % (M) )
+#endif
+
+
+
 #endif /* ICF_UTILS_H */

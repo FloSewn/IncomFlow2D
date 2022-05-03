@@ -57,7 +57,8 @@ void DualGrid_destroy(DualGrid* dualgrid);
 /***********************************************************************
 * Function to setup a dualgrid structure from a primary grid
 ***********************************************************************/
-DualGrid *DualGrid_build(DualGrid* dualgrid, 
+DualGrid *DualGrid_build(DualGrid    *dualgrid, 
+                         BoundaryDef *bdry_def,
                          PrimaryGrid *primgrid);
 
 #endif /* DUALGRID_H */

@@ -38,6 +38,9 @@ PrimaryGrid *PrimaryGrid_create()
   prim_grid->intr_edges = NULL;
   prim_grid->bdry_edges = NULL;
 
+  prim_grid->intr_edge_nbrs = NULL;
+  prim_grid->bdry_edge_nbrs = NULL;
+
   prim_grid->bdry_edge_marker = NULL;
 
 
@@ -60,6 +63,8 @@ int PrimaryGrid_destroy(PrimaryGrid *prim_grid)
   free(prim_grid->quad_neighbors);
   free(prim_grid->intr_edges);
   free(prim_grid->bdry_edges);
+  free(prim_grid->intr_edge_nbrs);
+  free(prim_grid->bdry_edge_nbrs);
   free(prim_grid->bdry_edge_marker);
 
   free(prim_grid);

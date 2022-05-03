@@ -22,7 +22,6 @@ typedef struct PrimaryGrid {
   int n_intr_edges;
   int n_bdry_edges;
 
-
   double (*vertex_coords)[2];
 
   int (*tris)[3];
@@ -33,6 +32,9 @@ typedef struct PrimaryGrid {
 
   int (*intr_edges)[2];
   int (*bdry_edges)[2];
+
+  int (*intr_edge_nbrs)[2];
+  int  *bdry_edge_nbrs;
 
   int  *bdry_edge_marker; 
 

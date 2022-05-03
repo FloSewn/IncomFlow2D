@@ -466,6 +466,7 @@ void MeshReader_read_intr_edges(MeshReader  *mesh_reader,
                                 PrimaryGrid *prim_grid)
 {
   int (*idxEdges)[2];
+  int (*idxEdgeNbrs)[2];
   int   nEdges = 0;
 
   int i, iMax, nValues;
@@ -492,7 +493,8 @@ void MeshReader_read_intr_edges(MeshReader  *mesh_reader,
 
   iMax = i + nEdges + 1;
 
-  idxEdges = calloc(nEdges, 2*sizeof(int));
+  idxEdges    = calloc(nEdges, 2*sizeof(int));
+  idxEdgeNbrs = calloc(nEdges, 2*sizeof(int));
 
   int i_edge = 0;
 
@@ -503,11 +505,14 @@ void MeshReader_read_intr_edges(MeshReader  *mesh_reader,
     nValues = values->qty;
     valPtr  = values->entry;
 
-    check(nValues == 3, 
+    check(nValues == 4, 
         "Wrong definition for interior edges.");
 
     idxEdges[i_edge][0] = atoi(valPtr[0]->data);
     idxEdges[i_edge][1] = atoi(valPtr[1]->data);
+
+    idxEdgeNbrs[i_edge][0] = atoi(valPtr[2]->data);
+    idxEdgeNbrs[i_edge][1] = atoi(valPtr[3]->data);
     
     i_edge++;
 
@@ -517,8 +522,9 @@ void MeshReader_read_intr_edges(MeshReader  *mesh_reader,
 
   bdestroy( markStr );
 
-  prim_grid->intr_edges   = idxEdges;
-  prim_grid->n_intr_edges = nEdges;
+  prim_grid->intr_edges     = idxEdges;
+  prim_grid->intr_edge_nbrs = idxEdgeNbrs;
+  prim_grid->n_intr_edges   = nEdges;
 
   return;
 
@@ -534,6 +540,7 @@ void MeshReader_read_bdry_edges(MeshReader  *mesh_reader,
                                 PrimaryGrid *prim_grid)
 {
   int (*idxEdges)[2];
+  int  *idxEdgeNbrs;
   int  *edgeMarker;
   int   nEdges = 0;
 
@@ -561,8 +568,9 @@ void MeshReader_read_bdry_edges(MeshReader  *mesh_reader,
 
   iMax = i + nEdges + 1;
 
-  idxEdges   = calloc(nEdges, 2*sizeof(int));
-  edgeMarker = calloc(nEdges, sizeof(int));
+  idxEdges    = calloc(nEdges, 2*sizeof(int));
+  idxEdgeNbrs = calloc(nEdges, sizeof(int));
+  edgeMarker  = calloc(nEdges, sizeof(int));
 
   int i_edge = 0;
 
@@ -573,12 +581,13 @@ void MeshReader_read_bdry_edges(MeshReader  *mesh_reader,
     nValues = values->qty;
     valPtr  = values->entry;
 
-    check (nValues == 3, 
+    check (nValues == 4, 
         "Wrong definition for boundary edges.");
 
     idxEdges[i_edge][0] = atoi(valPtr[0]->data);
     idxEdges[i_edge][1] = atoi(valPtr[1]->data);
-    edgeMarker[i_edge] = atoi(valPtr[2]->data);
+    idxEdgeNbrs[i_edge] = atoi(valPtr[2]->data);
+    edgeMarker[i_edge]  = atoi(valPtr[3]->data);
     
     i_edge++;
 
@@ -589,6 +598,7 @@ void MeshReader_read_bdry_edges(MeshReader  *mesh_reader,
   bdestroy( markStr );
 
   prim_grid->bdry_edges       = idxEdges;
+  prim_grid->bdry_edge_nbrs   = idxEdgeNbrs;
   prim_grid->bdry_edge_marker = edgeMarker;
   prim_grid->n_bdry_edges     = nEdges;
 
