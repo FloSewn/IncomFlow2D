@@ -233,6 +233,48 @@ int test_DualGrid_build()
 
   check( EQ(total_vol, 1.0), "Wrong calculation of element areas.");
 
+
+  for ( iface = 0; iface < dualgrid->n_intr_faces; iface++ )
+  {
+    const int p0 = dualgrid->face_nbrs[iface][0];
+    const int p1 = dualgrid->face_nbrs[iface][1];
+
+    /* Check face normals at triangle elements */
+    check( !( p0 == 23 && p1 == 19 ),
+        "Wrong face-to-element connectivity");
+    if ( p0 == 19 && p1 == 23 ) 
+    {
+      check( EQ(dualgrid->face_norms[iface][0], -1./6.),
+          "Wrong face normal calculation.");
+      check( EQ(dualgrid->face_norms[iface][1], 0.),
+          "Wrong face normal calculation.");
+    }
+
+    /* Check face normals at quad elements */
+    check( !( p0 == 17 && p1 == 2 ),
+        "Wrong face-to-element connectivity");
+    if ( p0 == 2 && p1 == 17 ) 
+    {
+      check( EQ(dualgrid->face_norms[iface][0], 0.),
+          "Wrong face normal calculation.");
+      check( EQ(dualgrid->face_norms[iface][1], 1./4.),
+          "Wrong face normal calculation.");
+    }
+
+    /* Check face normals at boundary elements */
+    check( !( p0 == 2 && p1 == 1 ),
+        "Wrong face-to-element connectivity");
+    if ( p0 == 1 && p1 == 2 ) 
+    {
+      check( EQ(dualgrid->face_norms[iface][0], 1./8.),
+          "Wrong face normal calculation.");
+      check( EQ(dualgrid->face_norms[iface][1], 0.),
+          "Wrong face normal calculation.");
+    }
+    
+  }
+
+  /* Print out face normals and elements 
   for ( iface = 0; iface < dualgrid->n_intr_faces; iface++ )
     printf("Face %d: %d->%d - (%lf,%lf)\n",
         iface, 
@@ -240,7 +282,7 @@ int test_DualGrid_build()
         dualgrid->face_nbrs[iface][1],
         dualgrid->face_norms[iface][0], 
         dualgrid->face_norms[iface][1]);
-
+  */
 
 
   /*------------------------------------------------------------------

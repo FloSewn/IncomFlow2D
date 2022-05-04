@@ -74,7 +74,7 @@ static inline void calc_quad_centroid(const double coords[4][2],
   center[0] = 0.25 * ( coords[0][0] + coords[1][0] 
                      + coords[2][0] + coords[3][0] );
   center[1] = 0.25 * ( coords[0][1] + coords[1][1] 
-                     + coords[2][1] + coords[3][0] );
+                     + coords[2][1] + coords[3][1] );
 }
 
 /***********************************************************************
@@ -162,7 +162,8 @@ DualGrid *DualGrid_build(DualGrid    *dualgrid,
   BoundaryList_build(dualgrid->boundaries, bdry_def, primgrid);
 
   /*--------------------------------------------------------------------
-  | Initialize interior dualgrid element connectivity
+  | Initialize interior dualgrid face-to-element connectivity
+  | The first element index is always lower than the second
   --------------------------------------------------------------------*/
   int ne_intr = primgrid->n_intr_edges;
   int ne_bdry = primgrid->n_bdry_edges;
@@ -170,14 +171,36 @@ DualGrid *DualGrid_build(DualGrid    *dualgrid,
 
   for ( i_edge = 0; i_edge < ne_intr; i_edge++ )
   {
-    dualgrid->face_nbrs[i_edge][0] = primgrid->intr_edges[i_edge][0];
-    dualgrid->face_nbrs[i_edge][1] = primgrid->intr_edges[i_edge][1];
+    const int p0 = primgrid->intr_edges[i_edge][0];
+    const int p1 = primgrid->intr_edges[i_edge][1];
+
+    if ( p0 < p1 )
+    {
+      dualgrid->face_nbrs[i_edge][0] = p0;
+      dualgrid->face_nbrs[i_edge][1] = p1;
+    }
+    else
+    {
+      dualgrid->face_nbrs[i_edge][0] = p1;
+      dualgrid->face_nbrs[i_edge][1] = p0;
+    }
   }
 
   for ( i_edge = ne_intr; i_edge < (ne_intr+ne_bdry); i_edge++ )
   {
-    dualgrid->face_nbrs[i_edge][0] = primgrid->bdry_edges[i_edge-ne_intr][0];
-    dualgrid->face_nbrs[i_edge][1] = primgrid->bdry_edges[i_edge-ne_intr][1];
+    const int p0 = primgrid->bdry_edges[i_edge-ne_intr][0];
+    const int p1 = primgrid->bdry_edges[i_edge-ne_intr][1];
+
+    if ( p0 < p1 )
+    {
+      dualgrid->face_nbrs[i_edge][0] = p0;
+      dualgrid->face_nbrs[i_edge][1] = p1;
+    }
+    else
+    {
+      dualgrid->face_nbrs[i_edge][0] = p1;
+      dualgrid->face_nbrs[i_edge][1] = p0;
+    }
   }
 
   /*--------------------------------------------------------------------
@@ -198,17 +221,10 @@ DualGrid *DualGrid_build(DualGrid    *dualgrid,
 
   int i_tri, i_quad, i_elem, i_face, k;
 
-
-  /* Initialize arrays */
-  for ( i_elem = 0; i_elem < n_elems; i_elem++ )
-    vol[i_elem] = 0.0;
-
-  for ( i_face = 0; i_face < n_faces; i_face++ )
-    face_norms[i_face][0] = face_norms[i_face][1] = 0.0;
-
-
-
-  /* Count number of dualgrid faces for each element */
+  /*--------------------------------------------------------------------
+  | Count the total number of joint dualgrid faces of each median
+  | dual element
+  --------------------------------------------------------------------*/
   int *n_elem_faces = calloc(dualgrid->n_elements, sizeof(int)); 
    
   for ( i_elem = 0; i_elem < n_elems; i_elem++ )
@@ -223,13 +239,18 @@ DualGrid *DualGrid_build(DualGrid    *dualgrid,
     ++n_elem_faces[p1];
   }
 
-  /* Count maximum occuring number of adjacent faces of an element */
+  /*--------------------------------------------------------------------
+  | Count maximum occuring face number of all elements
+  | --> Needed for memory allocation
+  --------------------------------------------------------------------*/
   int n_max_faces = 0;
   for ( i_elem = 0; i_elem < n_elems; i_elem++ )
     n_max_faces = MAX( n_max_faces, n_elem_faces[i_elem] );
 
-  /* Create connectivity list between dual elements and their 
-   * adjacent dual faces */
+  /*--------------------------------------------------------------------
+  | Create connectivity list between dual elements and their 
+  | corresponding joint median dual faces
+  --------------------------------------------------------------------*/
   int **elem_to_face = malloc( n_elems * sizeof(int*) );
 
   for ( i_elem = 0; i_elem < n_elems; i_elem++ )
@@ -255,12 +276,18 @@ DualGrid *DualGrid_build(DualGrid    *dualgrid,
     ++elem_to_face[p1][0];
   }
 
+  /*--------------------------------------------------------------------
+  | Initialize arrays for element volume and face normals
+  --------------------------------------------------------------------*/
+  for ( i_elem = 0; i_elem < n_elems; i_elem++ )
+    vol[i_elem] = 0.0;
 
+  for ( i_face = 0; i_face < n_faces; i_face++ )
+    face_norms[i_face][0] = face_norms[i_face][1] = 0.0;
 
-
-
-  /* Loop over all triangular primary elements and construct 
-   * corresponding median dual metrics */
+  /*--------------------------------------------------------------------
+  | Compute dualgrid metrics that arise from triangular elements
+  --------------------------------------------------------------------*/
   for ( i_tri = 0; i_tri < n_tris; i_tri++ )
   {
     int *tri = tris[i_tri];
@@ -317,38 +344,41 @@ DualGrid *DualGrid_build(DualGrid    *dualgrid,
       vol[p1] -= area1;
 
 
-      /* Normal contribution of sub-triangle interface */
+      /* Normal contribution of sub-triangle interface 
+       * --> Rotation in CCW */
       const double norm[2] = {
         -edge_centroids[i_edge][1] + tri_centroid[1],
          edge_centroids[i_edge][0] - tri_centroid[0],
       };
 
-      if ( p1 < p0 )
-        continue;
-
-      /* Obtain face index for current interface */
+      /* Find global index of current face and compute face normal 
+       * --> Normal points from p0 to p1 */
       int *faces_p0 = elem_to_face[p0];
 
-      /* Find global index of current face */
       for ( k = 0; k < faces_p0[0]; k++ )
       {
         i_face = faces_p0[k+1];
 
-        if (face_nbrs[i_face][0] == p1 || face_nbrs[i_face][1] == p1)
+        if (face_nbrs[i_face][0] == p1)
+        {
+          face_norms[i_face][0] -= norm[0];
+          face_norms[i_face][1] -= norm[1];
           break;
+        }
+
+        if (face_nbrs[i_face][1] == p1)
+        {
+          face_norms[i_face][0] += norm[0];
+          face_norms[i_face][1] += norm[1];
+          break;
+        }
       }
-
-      face_norms[i_face][0] += norm[0];
-      face_norms[i_face][1] += norm[1];
-
     } /* for ( i_edge = ... ) */
-
   } /* for( i_tri = ... ) */
 
-
-
-  /* Loop over all quadrilateral primary elements and construct 
-   * corresponding median dual metrics */
+  /*--------------------------------------------------------------------
+  | Compute dualgrid metrics that arise from quadrilateral elements
+  --------------------------------------------------------------------*/
   for ( i_quad = 0; i_quad < n_quads; i_quad++ )
   {
     int *quad = quads[i_quad];
@@ -406,32 +436,38 @@ DualGrid *DualGrid_build(DualGrid    *dualgrid,
       vol[p1] -= area1;
 
 
-      /* Normal contribution of sub-triangle interface */
+      /* Normal contribution of sub-triangle interface 
+       * --> Rotation in CCW */
       const double norm[2] = {
         -edge_centroids[i_edge][1] + quad_centroid[1],
          edge_centroids[i_edge][0] - quad_centroid[0],
       };
 
-      if ( p1 < p0 )
-        continue;
-
-      /* Find global index of current face */
+      /* Find global index of current face and compute face normal 
+       * --> Normal points from p0 to p1 */
       int *faces_p0 = elem_to_face[p0];
 
       for ( k = 0; k < faces_p0[0]; k++ )
       {
         i_face = faces_p0[k+1];
 
-        if (face_nbrs[i_face][0] == p1 || face_nbrs[i_face][1] == p1)
+        if (face_nbrs[i_face][0] == p1)
+        {
+          face_norms[i_face][0] -= norm[0];
+          face_norms[i_face][1] -= norm[1];
           break;
+        }
+
+        if (face_nbrs[i_face][1] == p1)
+        {
+          face_norms[i_face][0] += norm[0];
+          face_norms[i_face][1] += norm[1];
+          break;
+        }
       }
-
-      face_norms[i_face][0] += norm[0];
-      face_norms[i_face][1] += norm[1];
-
     } /* for ( i_edge = ... ) */
-
   } /* for( i_quad = ... ) */
+
 
   /*--------------------------------------------------------------------
   | Free temporary memory
